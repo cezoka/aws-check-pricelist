@@ -168,7 +168,7 @@ def process_bulk_service(service_code, csv_url, chunked_writer):
                 'Location': headers.index('Location') if 'Location' in headers else -1,
                 'Price': headers.index('PricePerUnit') if 'PricePerUnit' in headers else -1,
                 'Unit': headers.index('Unit') if 'Unit' in headers else -1,
-                'Desc': headers.index('Description') if 'Description' in headers else -1,
+                'Desc': headers.index('PriceDescription') if 'PriceDescription' in headers else (headers.index('Description') if 'Description' in headers else -1),
                 'TermType': headers.index('TermType') if 'TermType' in headers else -1
             }
             
