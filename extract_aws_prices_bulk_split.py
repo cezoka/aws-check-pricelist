@@ -183,6 +183,12 @@ def process_bulk_service(service_code, csv_url, chunked_writer):
                 if loc in TARGET_REGIONS:
                     sku = row[col_map['SKU']] if col_map['SKU'] != -1 and len(row) > col_map['SKU'] else ''
                     price = row[col_map['Price']] if col_map['Price'] != -1 and len(row) > col_map['Price'] else ''
+                    
+                    # [BUGFIX EXCEL PT-BR] A AWS devolve ponto (1.50) e nosso Windows/Excel no Brasil espera vírgula (1,50). 
+                    # Trocar o separador no ar salva o arquivo de bugar e contar como Bilhões.
+                    if price:
+                        price = price.replace('.', ',')
+                        
                     unit = row[col_map['Unit']] if col_map['Unit'] != -1 and len(row) > col_map['Unit'] else ''
                     desc = row[col_map['Desc']] if col_map['Desc'] != -1 and len(row) > col_map['Desc'] else ''
                     
