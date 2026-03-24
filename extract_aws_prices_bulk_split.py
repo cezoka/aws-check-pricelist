@@ -168,7 +168,8 @@ def process_bulk_service(service_code, csv_url, chunked_writer):
                 'Location': headers.index('Location') if 'Location' in headers else -1,
                 'Price': headers.index('PricePerUnit') if 'PricePerUnit' in headers else -1,
                 'Unit': headers.index('Unit') if 'Unit' in headers else -1,
-                'Desc': headers.index('Description') if 'Description' in headers else -1
+                'Desc': headers.index('Description') if 'Description' in headers else -1,
+                'TermType': headers.index('TermType') if 'TermType' in headers else -1
             }
             
             virtual_file = io.StringIO(newline='')
@@ -177,10 +178,12 @@ def process_bulk_service(service_code, csv_url, chunked_writer):
             
             for row in reader:
                 loc = row[col_map['Location']] if col_map['Location'] != -1 and len(row) > col_map['Location'] else 'Global'
+                term_type = row[col_map['TermType']] if col_map['TermType'] != -1 and len(row) > col_map['TermType'] else 'OnDemand'
                 
                 # AWS Bulk API costuma vir com local igual nossas tags ("US East (N. Virginia)", etc). 
                 # Bate no filtro para descartar dados indesejados!
-                if loc in TARGET_REGIONS:
+                # Filtramos estritamente 'OnDemand' para bater exatamente com o Public List Price vazio da fatura
+                if loc in TARGET_REGIONS and term_type == 'OnDemand':
                     sku = row[col_map['SKU']] if col_map['SKU'] != -1 and len(row) > col_map['SKU'] else ''
                     price = row[col_map['Price']] if col_map['Price'] != -1 and len(row) > col_map['Price'] else ''
                     
