@@ -1,27 +1,21 @@
-# AWS Price List Extractor (Bulk API & S3 Chunking)
+# AWS Price List Extractor
 
-Este projeto foi construído para realizar a extração ultrarrápida do catálogo de preços global da AWS, exportando diretamente para a nuvem da empresa sem consumir disco local.
+Script desenvolvido para automatizar a extração dos dados de precificação da AWS (AWS Price List). Os arquivos CSV gerados são processados e divididos em partes para facilitar a posterior ingestão em ferramentas de BI e análise de dados.
 
-## 🚀 Arquitetura e Diferenciais
+## Funcionalidades
 
-O script utiliza a poderosa **AWS Price List Bulk API**, abandonando a tradicional API de paginação do Boto3. 
-Em vez de fazer múltiplas requisições por preço, o script faz o download de arquivos estáticos CSV por HTTP (Streaming) hospedados nativamente pela AWS.
-
-* **Extrema Velocidade:** Varre milhões de SKUs (como do Amazon EC2 e S3) em minutos ao invés de horas.
-* **Ausência de Throttling (Limites da AWS):** Imune a bloqueios de "Rate Exceeded", pois utiliza arquivos da CDN da própria AWS.
-* **Zero Disco (S3 Streaming):** O script não cria arquivos pesados no seu notebook. Utiliza **S3 Multipart Upload** combinando com `io.StringIO` na memória RAM.
-* **Corte Inteligente Anti-Crash do Excel:** Ao identificar que o arquivo irá ultrapassar **900.000 linhas**, o script rotaciona proativamente os arquivos (ex: `parte_1`, `parte_2`). Isso impede que o limite do Microsoft Excel (~1.048.576 linhas) seja estourado, garantindo abertura segura para diretores ou analistas financeiros.
+- **Download via AWS Price List Bulk API:** Realiza o download dos dados em lote consumindo os arquivos estáticos CSV por streaming, como uma alternativa a API de paginação tradicional, acelerando a extração.
+- **Processamento em Memória (S3 Streaming):** Os dados são processados e enviados diretamente para o bucket S3 via Multipart Upload (`io.StringIO`), sem a necessidade de persistir os dados no armazenamento e disco local.
+- **Divisão Automática de CSVs (Split):** O script rotaciona a escrita de arquivos extensos (como os preços do AWS EC2) a cada 900.000 registros criados. A separação impede que os arquivos finais ultrapassem limites de linhas de editores de planilhas e simplifica o tratamento dos dados posteriormente.
 
 ---
 
-## 🛠️ Pré-Requisitos e Dependências
+## Pré-requisitos
 
-Para a máquina que for rodar o script (seja o seu computador ou um servidor), você precisará instalar o Python e duas bibliotecas principais:
+O ambiente de execução requer a instalação do Python e de pacotes para comunicação com as APIs e requisições HTTP:
 
-1. **boto3:** O SDK oficial da AWS para Python, responsável pelo gerenciamento e envio de arquivos para o S3.
-2. **requests:** Biblioteca robusta para fazer os downloads em HTTP Streaming da API estática da AWS.
-
-Abra o terminal e instale-os usando o gerenciador de pacotes pip:
+- `boto3`: AWS SDK for Python.
+- `requests`: Para chamadas eficientes nos endpoints do AWS Price List.
 
 ```bash
 pip install boto3 requests
@@ -29,30 +23,29 @@ pip install boto3 requests
 
 ---
 
-## 🔑 Autenticação e Credenciais (AWS SSO)
+## Autenticação (AWS SSO)
 
-O código foi padronizado para herdar o acesso direto de sistemas Single Sign-On (SSO) como o AWS Identity Center. Nesse repositório, o Python espera acessar um _Profile_ pré-configurado da AWS chamado **Core-AWSAdministratorAccess-047303556943** provindo da nuvem do cliente.
+O script utiliza as configurações do profile local da AWS. Atualmente, espera as credenciais relativas a um acesso do AWS Identity Center (SSO).
 
-Antes de iniciar a rodar o script pela primeira vez no dia (ou quando o Token SSO expirar), garanta a renovação das suas senhas temporárias com:
+O `profile` configurado é o: **Core-AWSAdministratorAccess-047303556943**.
+
+Certifique-se de realizar o login (ou renovar seu token diário) na AWS CLI antes da execução:
 
 ```bash
 aws sso login --profile Core-AWSAdministratorAccess-047303556943
 ```
-> Após o navegador confirmar *"Successfully logged in"*, seu terminal estará devidamente credenciado pelos próximos turnos.
 
 ---
 
-## ⚙️ Como Executar
+## Como Executar
 
-Com as dependências instaladas e o terminal logado na AWS, basta navegar até o diretório do seu script e disparar a execução:
+Com as dependências instaladas e o perfil logado no terminal, execute o job usando:
 
 ```bash
 python extract_aws_prices_bulk_split.py
 ```
 
-### O que vai acontecer?
-1. O terminal avisará que interceptou todos os ~200+ serviços de faturamento da AWS.
-2. Os downloads começarão via HTTP (arquivos maciços do EC2, RDS, etc).
-3. A cada 10 MB consolidados, você verá a mensagem que um "Bloco foi transferido para nuvem".
-4. Ao final do projeto, acesse o bucket S3 `s3://price-list-aws/split_csvs_bulk/`.
-5. Seus CSVs (particionados e numerados perfeitamente) estarão lá seguros para importar no PowerBI ou no Microsoft Excel!
+O scritp irá escanear os serviços disponíveis, processar os downloads e exibir mensagens reportando os chunks que forem transferidos pelo S3 Multipart Upload. 
+
+Ao final da execução, os CSVs extraídos (fatiados quando necessário) serão salvos no seguinte destino do S3:
+`s3://price-list-aws/split_csvs_bulk/`
